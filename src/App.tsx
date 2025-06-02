@@ -22,6 +22,7 @@ function App() {
   const [valorFinalMin, setValorFinalMin] = useState<string | null>(null);
   const [valorFinalMax, setValorFinalMax] = useState<string | null>(null);
   const [calculando, setCalculando] = useState(false);
+
   // Removida a mensagem de atratividade conforme solicitado
 
   // Faixas de CEP das cidades
@@ -174,85 +175,141 @@ function App() {
     }, 500);
   };
 
+  
+
   const exportarPDF = () => {
-    if (!valorFinalMin || !valorFinalMax) {
-      alert("Calcule o valor antes de exportar.");
-      return;
-    }
+  if (!valorFinalMin || !valorFinalMax) {
+    alert("Calcule o valor antes de exportar.");
+    return;
+  }
 
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
 
-    // Margens amplas como no modelo
-    const marginLeft = 55;
-    const lineHeight = 10;
-    let currentY = 40;
+  
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageheight = doc.internal.pageSize.getHeight();
+  const marginLeft = 20;
 
-    // Adicionar logo no canto superior direito
-    doc.addImage('/logo.png', 'PNG', 140, 15, 50, 25);
+   const marginX = 20;
+   let currentY = 65;
+  const orange: [number, number, number] = [239, 91, 48]; // R=214, G=74, B=32
 
-    // Título em laranja
-    doc.setTextColor(239, 91, 48); // Cor laranja da logo
-    doc.setFontSize(22);
-    doc.text("Simulação de Aluguel", marginLeft, currentY);
-    currentY += lineHeight * 2;
+  // Faixa laranja no topo
+doc.setFillColor(239, 91, 48);
+doc.rect(0, 0, pageWidth, 10, "F");
+currentY = 15;
 
-    // Informações em preto
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    
-    // Endereço em uma única linha
-    doc.text(`Endereço: ${rua}, Bairro: ${bairro}, CEP: ${cep}`, marginLeft, currentY);
-    currentY += lineHeight * 2;
-    
-    // Informações com espaçamento generoso
-    doc.text(`Área: ${metragem} m²`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Dormitórios: ${dormitorios}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Sacada: ${sacada}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Mobiliado: ${mobiliado}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Andar: ${andar}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Elevador: ${elevador}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Vagas: ${vagas}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Lazer: ${lazer}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Padrão: ${padrao}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Quadra: ${quadra}`, marginLeft, currentY);
-    currentY += lineHeight * 1.5;
-    
-    doc.text(`Estado do prédio: ${estadoPredio}`, marginLeft, currentY);
-    currentY += lineHeight * 3;
+  // ✅ Adicionar a logo no topo direito, com proporção correta
+  try {
+    const logoWidth = 40;
+    const logoHeight = 24.7; // proporcional a 2048x1265
+    doc.addImage('/logo.png', 'PNG', pageWidth - logoWidth - 15, 12, logoWidth, logoHeight);
 
-    // Valor em laranja com espaçamento maior no final
-    doc.setTextColor(239, 91, 48);
-    doc.setFontSize(16);
-    doc.text(
-      `Valor estimado: R$ ${valorFinalMin} a R$ ${valorFinalMax} mensais`,
-      marginLeft,
-      currentY
-    );
+  } catch (error) {
+    console.warn("Logo não encontrada ou erro ao carregar.");
+  }
 
-    doc.save("simulacao-aluguel.pdf");
-  };
+  currentY += 30; // Espaço após a logo
+
+  // ✅ Título
+  doc.setFontSize(18);
+ doc.setFont("helvetica", "bold");
+ doc.setTextColor(239, 91, 48);
+ doc.text("Simulação de Aluguel - Balneário Camboriú", marginLeft, currentY);
+ currentY += 8;
+
+ doc.setDrawColor(239, 91, 48);
+ doc.setLineWidth(0.8);
+ doc.line(marginX, currentY, pageWidth - marginX, currentY);
+  currentY += 15;
+
+
+  // ✅ Informações do imóvel
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+
+  const dadosEsquerda = [
+"Endereço: " + (rua || "-"),
+"CEP: " + (cep || "-"),
+"Dormitórios: " + dormitorios,
+"Sacada: " + sacada,
+"Andar: " + andar,
+"Vagas: " + vagas,
+"Padrão: " + padrao,
+"Estado do prédio: " + estadoPredio
+];
+
+const dadosDireita = [
+"Bairro: " + (bairro || "-"),
+"Área: " + metragem + " m²",
+"Suítes: " + suites,
+"Mobiliado: " + mobiliado,
+"Elevador: " + elevador,
+"Lazer: " + lazer,
+"Quadra: " + quadra,
+"Tipo: " + tipoImovel
+];
+
+  const leftColumnX = marginLeft;
+const rightColumnX = marginLeft + 70; // ajuste a distância entre as colunas conforme necessário
+
+for (let i = 0; i < dadosEsquerda.length; i++) {
+doc.text(dadosEsquerda[i], leftColumnX, currentY);
+doc.text(dadosDireita[i], rightColumnX, currentY);
+currentY += 7;
+}
+
+   // 5. Caixa de valor estimado
+  const caixaHeight = 20; 
+  const caixaWidth = pageWidth - 2 * marginX;
+
+  doc.setDrawColor(239, 91, 48);
+  doc.setFillColor(255, 245, 240);
+  doc.roundedRect(marginX, currentY, caixaWidth, caixaHeight, 3, 3, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(239, 91, 48);
+  doc.text(
+    `Valor estimado: R$ ${valorFinalMin} a R$ ${valorFinalMax} mensais`,
+    marginX + 5,
+    currentY + 13
+  );
+
+  currentY += caixaHeight + 15;
+
+
+  // ✅ Data da simulação
+  const hoje = new Date();
+  const dataFormatada = hoje.toLocaleDateString("pt-BR");
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Simulação realizada em: ${dataFormatada}`, marginLeft, currentY);
+  currentY += 10;
+ 
+  // 7. Rodapé laranja com assinatura
+  doc.setFillColor(239, 91, 48);
+doc.rect(0, pageheight - 15, pageWidth, 15, "F");
+
+doc.setFont("helvetica", "bold");
+doc.setFontSize(11);
+doc.setTextColor(255);
+doc.text("ADIM Aluguéis - CRECI 3235 J", marginX, pageheight - 5);
+
+
+  // ✅ Assinatura
+  doc.setFont("helvetica", "bold");
+  doc.text("ADIM Aluguéis - CRECI 3235 J", marginLeft, currentY);
+
+  doc.save("simulacao-aluguel.pdf");
+};
 
   return (
     <div className="app-container">
