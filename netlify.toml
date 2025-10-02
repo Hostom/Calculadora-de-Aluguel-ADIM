@@ -1,4 +1,10 @@
+# Conteúdo COMPLETO e CORRIGIDO para o netlify.toml
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
 [[redirects]]
-  from = "/api/*"
+  from = "httpsapi/*"
   to = "https://api.debit.com.br/v2/:splat"
   status = 200
