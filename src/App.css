@@ -270,3 +270,8 @@ footer {
 header h1 {
   font-size: 1.8rem;
 }
+.loading-container {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--cor-texto-secundario);
+}

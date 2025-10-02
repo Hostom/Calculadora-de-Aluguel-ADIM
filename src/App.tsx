@@ -1,6 +1,6 @@
 // VERSÃO FINAL INTEGRADA - Cole em src/App.tsx
-
-import { useState } from 'react';
+// No topo do src/App.tsx
+import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import './App.css';
 
@@ -55,7 +55,9 @@ function App() {
   const [calculando, setCalculando] = useState(false);
 
   // --- LÓGICA DE CÁLCULO E DADOS (SUA MÉTRICA ORIGINAL) ---
-  const predefinedIndices = { igpm: -0.47, ipca: 3.99, ivar: 0.76 };
+  // ... logo após os outros useStates
+  const [indices, setIndices] = useState<{ igpm: number; inpc: number } | null>(null);
+  const [loadingIndices, setLoadingIndices] = useState(true); // Para sabermos quando os dados estão sendo buscados
   const faixasCEP = {
     itajai: { inicio: "88300001", fim: "88319999" },
     camboriu: { inicio: "88340001", fim: "88349999" },
@@ -90,6 +92,44 @@ function App() {
     }
   }
 
+  // Cole este bloco de código após a declaração de todos os useState
+
+  useEffect(() => {
+    // Função assíncrona para buscar os dados dos índices
+    async function fetchIndices() {
+      // URLs da API da DEBIT para os índices mensais
+      const urlIgpm = 'https://api.debit.com.br/v2/indices/igpm';
+      const urlInpc = 'https://api.debit.com.br/v2/indices/inpc';
+
+      try {
+        // Faz as duas chamadas à API em paralelo para ser mais rápido
+        const [resIgpm, resInpc] = await Promise.all([
+          fetch(urlIgpm),
+          fetch(urlInpc),
+        ]);
+
+        const igpmData = await resIgpm.json();
+        const inpcData = await resInpc.json();
+        
+        // Armazena os valores no nosso estado 'indices'
+        // A API da DEBIT retorna o valor mensal no campo 'value'
+        setIndices({
+          igpm: igpmData.value,
+          inpc: inpcData.value,
+        });
+
+      } catch (error) {
+        console.error("Erro ao buscar os índices da API:", error);
+        alert("Não foi possível carregar os índices econômicos. Por favor, tente recarregar a página.");
+      } finally {
+        // Independente de sucesso ou falha, termina o carregamento
+        setLoadingIndices(false);
+      }
+    }
+
+    fetchIndices(); // Chama a função para buscar os dados
+  }, []); // O array vazio [] garante que isso rode apenas uma vez, quando o componente é montado
+
   function handleCepChange(e: React.ChangeEvent<HTMLInputElement>) {
     const novoCep = e.target.value.replace(/\D/g, "");
     setCep(novoCep);
@@ -119,7 +159,14 @@ function App() {
       // --- ANÁLISE 1: Reajuste Contratual ---
       const selectElement = document.querySelector<HTMLSelectElement>('#index-select');
       const indexName = selectElement?.selectedOptions[0].text || '';
-      const indexPercent = predefinedIndices[selectedIndex as keyof typeof predefinedIndices];
+      // Primeiro, verifica se os índices já foram carregados
+      if (!indices) {
+        alert("Os índices ainda estão sendo carregados. Por favor, aguarde um momento.");
+        setCalculando(false);
+        return;
+      }
+      
+      const indexPercent = indices[selectedIndex as keyof typeof indices];
       const rentAdjustedByIndex = rent * (1 + indexPercent / 100);
       const contractAnalysis: IContractAnalysis = { currentRent: rent, indexName, indexPercent, rentAdjustedByIndex };
       
@@ -174,7 +221,16 @@ function App() {
     doc.text(`Proposta Final: ${formatCurrency(result.finalProposedValue)}`, 10, 40);
     doc.save("analise-renovacao.pdf");
   };
-
+if (loadingIndices) {
+    return (
+      <main className="container">
+        <div className="loading-container">
+          <h1>Carregando índices econômicos...</h1>
+          <p>Buscando os valores mais recentes de IGP-M e INPC.</p>
+        </div>
+      </main>
+    )
+  }
   return (
     <main className="container">
       <header>
