@@ -98,8 +98,8 @@ function App() {
     // Função assíncrona para buscar os dados dos índices
     async function fetchIndices() {
       // URLs da API da DEBIT para os índices mensais
-      const urlIgpm = 'https://api.debit.com.br/v2/indices/igpm';
-      const urlInpc = 'https://api.debit.com.br/v2/indices/inpc';
+      const urlIgpm = '/api/indices/igpm';
+      const urlInpc = '/api/indices/inpc';
 
       try {
         // Faz as duas chamadas à API em paralelo para ser mais rápido

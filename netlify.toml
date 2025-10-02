@@ -1,0 +1,6 @@
+# Conteúdo para o arquivo netlify.toml
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.debit.com.br/v2/:splat"
+  status = 200
