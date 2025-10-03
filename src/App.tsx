@@ -284,47 +284,54 @@ function App() {
     doc.text(`${formatCurrency(result.marketAnalysis.valueMin)} a ${formatCurrency(result.marketAnalysis.valueMax)}`, middleX, currentY);
     currentY += 15;
 
-   // --- PROPOSTA FINAL ---
-    const proposalBoxHeight = result.justification.trim() !== '' ? 45 : 30;
-    doc.setFillColor("#f0f4f8");
-    doc.roundedRect(margin, currentY, pageWidth - (margin * 2), proposalBoxHeight, 3, 3, 'F');
-    
-    let proposalY = currentY + 8;
+     // --- 5. PROPOSTA FINAL ---
+    // Começamos salvando a posição Y atual antes de desenhar a caixa
+    const proposalBoxY = currentY; 
 
-    if (result.justification.trim() !== '') {
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "italic");
-      doc.setTextColor(grayColor);
-      const justificationLines = doc.splitTextToSize(`Justificativa: ${result.justification}`, pageWidth - (margin * 2) - 10);
-      doc.text(justificationLines, margin + 5, proposalY);
-      proposalY += (justificationLines.length * 6) + 5; // Aumentado para 6 para mais espaço
-    } else {
-      proposalY += 5;
-    }
-    
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor("#27ae60");
-    doc.text(formatCurrency(result.finalProposedValue), pageWidth / 2, proposalY, { align: 'center' });
-
-      // Verifica se a justificativa não está vazia e, se não estiver, a adiciona ao PDF
+    // Adiciona a Justificativa (se existir)
     if (result.justification.trim() !== '') {
       doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
       doc.setTextColor(grayColor);
       
-      // O 'splitTextToSize' quebra o texto em várias linhas se for muito longo
       const justificationLines = doc.splitTextToSize(`Justificativa: ${result.justification}`, pageWidth - (margin * 2) - 10);
-      doc.text(justificationLines, margin + 5, proposalY);
-      proposalY += (justificationLines.length * 10) + 8; // Move a posição Y para baixo
+      doc.text(justificationLines, margin + 5, currentY + 8);
+
+      // Move a posição Y para baixo, o suficiente para o texto da justificativa
+      currentY += (justificationLines.length * 5) + 5; 
     } else {
-      proposalY += 8; // Se não tiver justificativa, só adiciona um espacinho
+      currentY += 10; // Se não houver justificativa, adiciona um espaço menor
     }
 
+    // Adiciona um espaço extra antes do valor final
+    currentY += 10;
+
+    // Desenha o Valor Final na nova posição Y
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor("#27ae60");
-    doc.text(formatCurrency(result.finalProposedValue), pageWidth / 2, currentY + 20, { align: 'center' });
+    doc.text(formatCurrency(result.finalProposedValue), pageWidth / 2, currentY, { align: 'center' });
+
+    currentY += 10; // Move para baixo após o valor final
+
+    // Agora, desenha a caixa de fundo por trás de tudo que acabamos de escrever
+    doc.setFillColor("#f0f4f8");
+    doc.roundedRect(margin, proposalBoxY - 5, pageWidth - (margin * 2), currentY - proposalBoxY, 3, 3, 'F');
+    
+    // Reescreve o texto por cima da caixa para garantir que fique visível
+    // (O jsPDF desenha em camadas, então reescrevemos para garantir a frente)
+    if (result.justification.trim() !== '') {
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(grayColor);
+      const justificationLines = doc.splitTextToSize(`Justificativa: ${result.justification}`, pageWidth - (margin * 2) - 10);
+      doc.text(justificationLines, margin + 5, proposalBoxY + 3);
+    }
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor("#27ae60");
+    doc.text(formatCurrency(result.finalProposedValue), pageWidth / 2, currentY - 10, { align: 'center' });
 
     // --- RODAPÉ ---
     const hoje = new Date();
