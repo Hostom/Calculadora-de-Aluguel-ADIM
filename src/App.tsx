@@ -119,7 +119,7 @@ function App() {
       const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
       const dados = await resposta.json();
       if (dados.erro) { alert("CEP não encontrado"); return; }
-      setRua(dados.logouro || "");
+      setRua(dados.Logradouro || "");
       setBairro(dados.bairro || "");
     } catch (_) {
       alert("Erro ao buscar CEP");
@@ -214,7 +214,7 @@ function App() {
 
     // --- CABEÇALHO ---
     try {
-      doc.addImage('/logo-adim.png', 'PNG', margin, margin, 40, 25);
+      doc.addImage('/logo.png', 'PNG', margin, margin, 40, 25);
     } catch (e) { console.error("Erro ao adicionar a logo."); }
 
     doc.setFontSize(10);
@@ -317,7 +317,7 @@ function App() {
     return (
       <main className="container">
         <div className="loading-container">
-          <img src="/logo-adim.png" alt="Logo ADIM" className="logo" />
+          <img src="/logo.png" alt="Logo ADIM" className="logo" />
           <h1>Carregando índices econômicos...</h1>
           <p>Buscando os valores acumulados mais recentes de IGP-M e INPC.</p>
         </div>
@@ -328,7 +328,7 @@ function App() {
   return (
     <main className="container">
       <header>
-        <img src="/logo-adim.png" alt="Logo ADIM" className="logo" />
+        <img src="/logo.png" alt="Logo ADIM" className="logo" />
         <h1>Painel de Análise de Renovação</h1>
         <p>Compare o reajuste contratual com o valor de mercado para definir a melhor proposta.</p>
       </header>
