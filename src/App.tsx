@@ -114,9 +114,11 @@ function App() {
         
         // Armazena os valores no nosso estado 'indices'
         // A API da DEBIT retorna o valor mensal no campo 'value'
-        setIndices({
-          igpm: igpmData.value,
-          inpc: inpcData.value,
+        // DENTRO DO useEffect > fetchIndices
+
+       setIndices({
+          igpm: parseFloat(igpmData.value),
+          inpc: parseFloat(inpcData.value),
         });
 
       } catch (error) {
