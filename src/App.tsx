@@ -119,7 +119,7 @@ function App() {
       const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
       const dados = await resposta.json();
       if (dados.erro) { alert("CEP não encontrado"); return; }
-      setRua(dados.Logradouro || "");
+      setRua(dados.logradouro || "");
       setBairro(dados.bairro || "");
     } catch (_) {
       alert("Erro ao buscar CEP");
