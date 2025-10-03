@@ -1,5 +1,5 @@
-// VERSÃO FINAL INTEGRADA - Cole em src/App.tsx
-// No topo do src/App.tsx
+// VERSÃO FINAL, COMPLETA E SEM ABREVIAÇÕES - Cole em src/App.tsx
+
 import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import './App.css';
@@ -53,11 +53,45 @@ function App() {
   // --- Estados de Controle ---
   const [result, setResult] = useState<IResult | null>(null);
   const [calculando, setCalculando] = useState(false);
-
-  // --- LÓGICA DE CÁLCULO E DADOS (SUA MÉTRICA ORIGINAL) ---
-  // ... logo após os outros useStates
   const [indices, setIndices] = useState<{ igpm: number; inpc: number } | null>(null);
-  const [loadingIndices, setLoadingIndices] = useState(true); // Para sabermos quando os dados estão sendo buscados
+  const [loadingIndices, setLoadingIndices] = useState(true);
+
+  // --- EFEITO PARA BUSCAR DADOS DA API ---
+  useEffect(() => {
+    async function fetchIndices() {
+      const seriesMap = { igpm: '189', inpc: '188' };
+      const urlIgpm = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${seriesMap.igpm}/dados/ultimos/12?formato=json`;
+      const urlInpc = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${seriesMap.inpc}/dados/ultimos/12?formato=json`;
+      try {
+        const [resIgpm, resInpc] = await Promise.all([ fetch(urlIgpm), fetch(urlInpc) ]);
+        if (!resIgpm.ok || !resInpc.ok) throw new Error("Falha ao buscar dados do BCB");
+        const igpmData = await resIgpm.json();
+        const inpcData = await resInpc.json();
+
+        const calculateAccumulated = (data: { valor: string }[]) => {
+          const totalFactor = data.reduce((accumulator, currentItem) => {
+            const monthlyValue = parseFloat(currentItem.valor);
+            return accumulator * (1 + monthlyValue / 100);
+          }, 1);
+          return (totalFactor - 1) * 100;
+        };
+        
+        setIndices({ 
+          igpm: calculateAccumulated(igpmData), 
+          inpc: calculateAccumulated(inpcData) 
+        });
+
+      } catch (error) {
+        console.error("Erro ao buscar os índices da API:", error);
+        alert("Não foi possível carregar os índices econômicos. Por favor, tente recarregar a página.");
+      } finally {
+        setLoadingIndices(false);
+      }
+    }
+    fetchIndices();
+  }, []);
+
+  // --- LÓGICA E FUNÇÕES AUXILIARES ---
   const faixasCEP = {
     itajai: { inicio: "88300001", fim: "88319999" },
     camboriu: { inicio: "88340001", fim: "88349999" },
@@ -75,7 +109,7 @@ function App() {
     if (cepNumerico.length !== 8) return false;
     return Object.values(faixasCEP).some(faixa => cepNumerico >= faixa.inicio && cepNumerico <= faixa.fim);
   };
-
+  
   async function buscarEnderecoPorCEP(cep: string) {
     try {
       if (!verificarCEP(cep)) {
@@ -92,47 +126,6 @@ function App() {
     }
   }
 
-  // Cole este bloco de código após a declaração de todos os useState
-
-  useEffect(() => {
-    // Função assíncrona para buscar os dados dos índices
-    async function fetchIndices() {
-      // URLs da API da DEBIT para os índices mensais
-      // Novo endpoint seguro via Netlify Functions
-    const urlIgpm = '/.netlify/functions/indices?name=igpm';
-    const urlInpc = '/.netlify/functions/indices?name=inpc';  
-
-      try {
-        // Faz as duas chamadas à API em paralelo para ser mais rápido
-        const [resIgpm, resInpc] = await Promise.all([
-          fetch(urlIgpm),
-          fetch(urlInpc),
-        ]);
-
-        const igpmData = await resIgpm.json();
-        const inpcData = await resInpc.json();
-        
-        // Armazena os valores no nosso estado 'indices'
-        // A API da DEBIT retorna o valor mensal no campo 'value'
-        // DENTRO DO useEffect > fetchIndices
-
-       setIndices({
-          igpm: parseFloat(igpmData.value),
-          inpc: parseFloat(inpcData.value),
-        });
-
-      } catch (error) {
-        console.error("Erro ao buscar os índices da API:", error);
-        alert("Não foi possível carregar os índices econômicos. Por favor, tente recarregar a página.");
-      } finally {
-        // Independente de sucesso ou falha, termina o carregamento
-        setLoadingIndices(false);
-      }
-    }
-
-    fetchIndices(); // Chama a função para buscar os dados
-  }, []); // O array vazio [] garante que isso rode apenas uma vez, quando o componente é montado
-
   function handleCepChange(e: React.ChangeEvent<HTMLInputElement>) {
     const novoCep = e.target.value.replace(/\D/g, "");
     setCep(novoCep);
@@ -145,39 +138,30 @@ function App() {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
   
-  // --- FUNÇÃO PRINCIPAL QUE RODA AS DUAS ANÁLISES ---
+  // --- FUNÇÃO PRINCIPAL DE CÁLCULO ---
   const handleCalculateAnalyses = () => {
     setCalculando(true);
-
-    // Validação de entrada principal
     const rent = parseFloat(currentRent);
     if (isNaN(rent) || rent <= 0) {
       alert('Por favor, insira um valor de aluguel atual que seja válido.');
       setCalculando(false);
       return;
     }
-    
-    // Simula um tempo de processamento
+    if (!indices) {
+      alert("Os índices ainda estão sendo carregados. Por favor, aguarde um momento.");
+      setCalculando(false);
+      return;
+    }
     setTimeout(() => {
-      // --- ANÁLISE 1: Reajuste Contratual ---
+      // ANÁLISE 1: Reajuste Contratual
       const selectElement = document.querySelector<HTMLSelectElement>('#index-select');
       const indexName = selectElement?.selectedOptions[0].text || '';
-      // Primeiro, verifica se os índices já foram carregados
-      if (!indices) {
-        alert("Os índices ainda estão sendo carregados. Por favor, aguarde um momento.");
-        setCalculando(false);
-        return;
-      }
-      
       const indexPercent = indices[selectedIndex as keyof typeof indices];
       const rentAdjustedByIndex = rent * (1 + indexPercent / 100);
       const contractAnalysis: IContractAnalysis = { currentRent: rent, indexName, indexPercent, rentAdjustedByIndex };
       
-      // --- ANÁLISE 2: Valor de Mercado (sua métrica) ---
-      const valorBaseM2 = tipoImovel === "casa"
-        ? (padrao === "alto" ? 80 : padrao === "medio" ? 50 : 35)
-        : estadoPredio === "antigo" ? 53 : padrao === "alto" ? 90 : padrao === "medio" ? 45 : 30;
-      
+      // ANÁLISE 2: Valor de Mercado (sua métrica)
+      const valorBaseM2 = tipoImovel === "casa" ? (padrao === "alto" ? 80 : padrao === "medio" ? 50 : 35) : estadoPredio === "antigo" ? 53 : padrao === "alto" ? 90 : padrao === "medio" ? 45 : 30;
       let ajuste = 0;
       if (mobiliado === "semi") ajuste -= 0.3; else if (mobiliado === "nao") ajuste -= 0.15; else if (mobiliado === "decorado") ajuste += 0.1;
       if (sacada === "sem churrasqueira") ajuste -= 0.07; else if (sacada === "sem sacada") ajuste -= 0.1;
@@ -201,43 +185,150 @@ function App() {
       const valorMax = valorBase * (1 + ajuste + 0.05);
       const marketAnalysis: IMarketAnalysis = { valueMin: valorMin, valueMax: valorMax };
 
-      // --- PROPOSTA FINAL ---
+      // PROPOSTA FINAL
       const marketAdjPercent = parseFloat(marketAdjustment) || 0;
       const finalProposedValue = rentAdjustedByIndex * (1 + marketAdjPercent / 100);
 
-      // Atualiza o estado com todos os resultados
       setResult({ contractAnalysis, marketAnalysis, finalProposedValue, marketAdjustment: marketAdjPercent, justification });
       setCalculando(false);
     }, 500);
   };
 
+  // --- FUNÇÃO DE EXPORTAÇÃO DE PDF ESTILIZADA ---
   const exportarPDF = () => {
     if (!result) {
-      alert("Gere uma análise antes de exportar.");
+      alert("Por favor, gere uma análise antes de exportar o PDF.");
       return;
     }
+
     const doc = new jsPDF();
-    // Você pode usar a sua lógica original de PDF aqui, adaptando para os novos dados
-    doc.text("Relatório de Análise Comparativa", 10, 10);
-    doc.text(`Valor Contratual Corrigido: ${formatCurrency(result.contractAnalysis.rentAdjustedByIndex)}`, 10, 20);
-    doc.text(`Valor de Mercado Estimado: ${formatCurrency(result.marketAnalysis.valueMin)} a ${formatCurrency(result.marketAnalysis.valueMax)}`, 10, 30);
-    doc.text(`Proposta Final: ${formatCurrency(result.finalProposedValue)}`, 10, 40);
-    doc.save("analise-renovacao.pdf");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let currentY = 0;
+
+    const adimBlue = "#005a9c";
+    const adimOrange = "#ef5b30";
+    const textColor = "#333333";
+    const grayColor = "#7f8c8d";
+
+    // --- CABEÇALHO ---
+    try {
+      doc.addImage('/logo-adim.png', 'PNG', margin, margin, 40, 25);
+    } catch (e) { console.error("Erro ao adicionar a logo."); }
+
+    doc.setFontSize(10);
+    doc.setTextColor(grayColor);
+    const rightText = "adimimoveis.com.br";
+    const rightTextWidth = doc.getTextWidth(rightText);
+    doc.text(rightText, pageWidth - margin - rightTextWidth, margin + 10);
+
+    currentY = margin + 35;
+
+    // --- TÍTULO DO RELATÓRIO ---
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(adimBlue);
+    doc.text("Painel de Análise para Renovação de Aluguel", pageWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
+    
+    doc.setDrawColor(adimOrange);
+    doc.setLineWidth(0.5);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 15;
+
+    // --- DETALHES DO IMÓVEL ---
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(textColor);
+    doc.text("Características do Imóvel Avaliado", margin, currentY);
+    currentY += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    const dadosEsquerda = [ `Endereço: ${rua || "-"}`, `Bairro: ${bairro || "-"}`, `Tipo: ${tipoImovel}`, `Metragem: ${metragem} m²`, `Dormitórios: ${dormitorios} (sendo ${suites} suítes)`, `Vagas: ${vagas}` ];
+    const dadosDireita = [ `Padrão: ${padrao}`, `Mobiliado: ${mobiliado}`, `Lazer: ${lazer}`, `Andar: ${andar}`, `Sacada: ${sacada}`, `Elevador: ${elevador}` ];
+
+    const middleX = pageWidth / 2;
+    for (let i = 0; i < dadosEsquerda.length; i++) {
+      doc.text(dadosEsquerda[i], margin, currentY);
+      if (dadosDireita[i]) { doc.text(dadosDireita[i], middleX, currentY); }
+      currentY += 6;
+    }
+    currentY += 10;
+
+    // --- ANÁLISES COMPARATIVAS ---
+    doc.setDrawColor(adimOrange);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 10;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(adimBlue);
+    doc.text("Análise de Reajuste Contratual", margin, currentY);
+    currentY += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(textColor);
+    doc.text(`Valor Atual: ${formatCurrency(result.contractAnalysis.currentRent)}`, margin + 5, currentY);
+    doc.text(`Valor Corrigido (${result.contractAnalysis.indexPercent.toFixed(2)}%): ${formatCurrency(result.contractAnalysis.rentAdjustedByIndex)}`, middleX, currentY);
+    currentY += 10;
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(adimBlue);
+    doc.text("Análise de Valor de Mercado", margin, currentY);
+    currentY += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(textColor);
+    doc.text(`Faixa de Valor Estimada:`, margin + 5, currentY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${formatCurrency(result.marketAnalysis.valueMin)} a ${formatCurrency(result.marketAnalysis.valueMax)}`, middleX, currentY);
+    currentY += 15;
+
+    // --- PROPOSTA FINAL ---
+    doc.setFillColor("#f0f4f8");
+    doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 30, 3, 3, 'F');
+    
+    doc.setFontSize(10);
+    doc.setTextColor(grayColor);
+    doc.text("Proposta Final de Renovação:", margin + 5, currentY + 8);
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor("#27ae60");
+    doc.text(formatCurrency(result.finalProposedValue), pageWidth / 2, currentY + 20, { align: 'center' });
+
+    // --- RODAPÉ ---
+    const hoje = new Date();
+    const dataFormatada = hoje.toLocaleDateString("pt-BR");
+    
+    doc.setFillColor(adimOrange);
+    doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+    
+    doc.setFontSize(10);
+    doc.setTextColor("#ffffff");
+    doc.text("ADIM Imóveis - CRECI 3235J", margin, pageHeight - 8);
+    doc.text(`Relatório gerado em: ${dataFormatada}`, pageWidth - margin - doc.getTextWidth(`Relatório gerado em: ${dataFormatada}`), pageHeight - 8);
+
+    doc.save("Analise_Renovacao_ADIM.pdf");
   };
-if (loadingIndices) {
+
+  // --- RENDERIZAÇÃO ---
+  if (loadingIndices) {
     return (
       <main className="container">
         <div className="loading-container">
+          <img src="/logo-adim.png" alt="Logo ADIM" className="logo" />
           <h1>Carregando índices econômicos...</h1>
-          <p>Buscando os valores mais recentes de IGP-M e INPC.</p>
+          <p>Buscando os valores acumulados mais recentes de IGP-M e INPC.</p>
         </div>
       </main>
     )
   }
+  
   return (
     <main className="container">
       <header>
-        <img src="/logo.png" alt="Logo ADIM" className="logo" />
+        <img src="/logo-adim.png" alt="Logo ADIM" className="logo" />
         <h1>Painel de Análise de Renovação</h1>
         <p>Compare o reajuste contratual com o valor de mercado para definir a melhor proposta.</p>
       </header>
@@ -255,7 +346,7 @@ if (loadingIndices) {
               <label htmlFor="index-select">Índice de Reajuste</label>
               <select id="index-select" value={selectedIndex} onChange={(e) => setSelectedIndex(e.target.value)}>
                 <option value="igpm">IGP-M (Acumulado 12 meses)</option>
-                <option value="ipca">IPCA (Acumulado 12 meses)</option>
+                <option value="inpc">INPC (Acumulado 12 meses)</option>
               </select>
             </div>
           </div>
