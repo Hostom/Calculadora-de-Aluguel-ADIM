@@ -20,7 +20,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     };
   }
 
-  const apiUrl = `https://api.debit.com.br/v2/indices/${indexName}`;
+  const apiUrl = `https://api.debit.com.br/v2/index-series/${indexName}`;
 
   try {
     const response = await fetch(apiUrl, {
