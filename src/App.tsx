@@ -289,7 +289,7 @@ function App() {
     doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 30, 3, 3, 'F');
      
     let proposalY = currentY + 8;
-    
+
     doc.setFontSize(10);
     doc.setTextColor(grayColor);
     doc.text("Proposta Final de Renovação:", margin + 5, currentY + 8);
@@ -314,7 +314,7 @@ function App() {
       // O 'splitTextToSize' quebra o texto em várias linhas se for muito longo
       const justificationLines = doc.splitTextToSize(`Justificativa: ${result.justification}`, pageWidth - (margin * 2) - 10);
       doc.text(justificationLines, margin + 5, proposalY);
-      proposalY += (justificationLines.length * 4) + 5; // Move a posição Y para baixo
+      proposalY += (justificationLines.length * 6) + 5; // Move a posição Y para baixo
     } else {
       proposalY += 5; // Se não tiver justificativa, só adiciona um espacinho
     }
