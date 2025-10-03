@@ -314,9 +314,9 @@ function App() {
       // O 'splitTextToSize' quebra o texto em várias linhas se for muito longo
       const justificationLines = doc.splitTextToSize(`Justificativa: ${result.justification}`, pageWidth - (margin * 2) - 10);
       doc.text(justificationLines, margin + 5, proposalY);
-      proposalY += (justificationLines.length * 8) + 6; // Move a posição Y para baixo
+      proposalY += (justificationLines.length * 10) + 8; // Move a posição Y para baixo
     } else {
-      proposalY += 6; // Se não tiver justificativa, só adiciona um espacinho
+      proposalY += 8; // Se não tiver justificativa, só adiciona um espacinho
     }
 
     doc.setFontSize(16);
