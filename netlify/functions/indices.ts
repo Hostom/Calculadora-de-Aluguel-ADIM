@@ -41,11 +41,12 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     };
 
   } catch (error: any) {
-    return {
-      statusCode: 502, // Bad Gateway
-      body: JSON.stringify({ error: error.message }),
-    };
-  }
+  console.error("ERRO DETALHADO DENTRO DA FUNÇÃO:", error); // <-- ADICIONE ESTA LINHA
+  return {
+    statusCode: 502, // Bad Gateway
+    body: JSON.stringify({ error: error.message }),
+  };
+}
 };
 
 export { handler };
