@@ -1,14 +1,3 @@
-# Este arquivo tem prioridade sobre as configurações da interface do Netlify
-
 [build]
-  # O comando que o Netlify deve usar para construir seu site
   command = "npm run build"
-  
-  # A pasta que contém o site pronto para ser publicado
   publish = "dist"
-
-# A regra do proxy para a API, que resolve o erro de CORS e o 404
-[[redirects]]
-  from = "/api/*"
-  to = "https://api.debit.com.br/v2/:splat"
-  status = 200

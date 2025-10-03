@@ -98,8 +98,9 @@ function App() {
     // Função assíncrona para buscar os dados dos índices
     async function fetchIndices() {
       // URLs da API da DEBIT para os índices mensais
-      const urlIgpm = '/api/indices/igpm';
-      const urlInpc = '/api/indices/inpc';
+      // Novo endpoint seguro via Netlify Functions
+    const urlIgpm = '/.netlify/functions/indices?name=igpm';
+    const urlInpc = '/.netlify/functions/indices?name=inpc';  
 
       try {
         // Faz as duas chamadas à API em paralelo para ser mais rápido
