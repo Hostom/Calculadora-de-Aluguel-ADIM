@@ -284,27 +284,29 @@ function App() {
     doc.text(`${formatCurrency(result.marketAnalysis.valueMin)} a ${formatCurrency(result.marketAnalysis.valueMax)}`, middleX, currentY);
     currentY += 15;
 
-    // --- PROPOSTA FINAL ---
+   // --- PROPOSTA FINAL ---
+    const proposalBoxHeight = result.justification.trim() !== '' ? 45 : 30;
     doc.setFillColor("#f0f4f8");
-    doc.roundedRect(margin, currentY, pageWidth - (margin * 2), 30, 3, 3, 'F');
-     
+    doc.roundedRect(margin, currentY, pageWidth - (margin * 2), proposalBoxHeight, 3, 3, 'F');
+    
     let proposalY = currentY + 8;
 
-    doc.setFontSize(10);
-    doc.setTextColor(grayColor);
-    doc.text("Proposta Final de Renovação:", margin + 5, currentY + 8);
-     if (result.justification.trim() !== '') {
+    if (result.justification.trim() !== '') {
       doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
       doc.setTextColor(grayColor);
-      
-      // O 'splitTextToSize' quebra o texto em várias linhas se for muito longo
       const justificationLines = doc.splitTextToSize(`Justificativa: ${result.justification}`, pageWidth - (margin * 2) - 10);
       doc.text(justificationLines, margin + 5, proposalY);
-      proposalY += (justificationLines.length * 4) + 5; // Move a posição Y para baixo
+      proposalY += (justificationLines.length * 6) + 5; // Aumentado para 6 para mais espaço
     } else {
-      proposalY += 5; // Se não tiver justificativa, só adiciona um espacinho
-    } 
+      proposalY += 5;
+    }
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor("#27ae60");
+    doc.text(formatCurrency(result.finalProposedValue), pageWidth / 2, proposalY, { align: 'center' });
+
       // Verifica se a justificativa não está vazia e, se não estiver, a adiciona ao PDF
     if (result.justification.trim() !== '') {
       doc.setFontSize(9);
